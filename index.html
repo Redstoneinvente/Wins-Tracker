@@ -633,49 +633,9 @@ Friction / blockers:
       fb.db = getFirestore(fb.app);
       fb.auth = getAuth(fb.app);
 
-// After fb.auth = getAuth(fb.app)
-try {
-  await setPersistence(fb.auth, browserLocalPersistence);
-} catch { /* ignore */ }
-
-let didAutoAnon = false;
-
-onAuthStateChanged(fb.auth, async (user) => {
-  if (user) {
-    fb.uid = user.uid;
-    fb.ready = true;
-
-    // Display email if present, else anonymous label
-    const label = user.email ? user.email : (user.isAnonymous ? "anonymous" : "user");
-    document.getElementById("uidLabel").textContent = label;
-
-    document.getElementById("syncNote").textContent =
-      "Local saves + Firestore sync enabled. Export JSON for backups.";
-
-    // Prefetch current month
-    prefetchMonthFromFirestore();
-    return;
-  }
-
-  // No user restored -> sign in anonymously once
-  fb.uid = null;
-  fb.ready = false;
-  document.getElementById("uidLabel").textContent = "local";
-
-  if (!didAutoAnon) {
-    didAutoAnon = true;
-    try {
-      await signInAnonymously(fb.auth);
-    } catch {
-      // stay local only
-    }
-  }
-});
-
-
       // Anonymous auth keeps it simple (no login UI)
       //signInAnonymously(fb.auth).catch(()=>{ /* ignore, UI will stay local-only */ });
-<!-- 
+
       onAuthStateChanged(fb.auth, (user)=>{
         if(user){
           fb.uid = user.uid;
@@ -690,7 +650,7 @@ onAuthStateChanged(fb.auth, async (user) => {
           fb.ready = false;
           document.getElementById("uidLabel").textContent = "local";
         }
-      }); -->
+      });
     }catch{
       // If Firebase fails, app continues locally.
       fb.ready = false;
