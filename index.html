@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daily System Tracker</title>
+  <style>
+    :root{
+      --bg:#0f1418;
+      --surface:#141b20;
+      --surface-2:#192227;
+      --outline:rgba(255,255,255,.10);
+      --outline-2:rgba(255,255,255,.16);
+
+      --text:rgba(255,255,255,.92);
+      --text-2:rgba(255,255,255,.72);
+      --text-3:rgba(255,255,255,.56);
+
+      --primary:#9bd1ff;
+      --primary-2:#59b3ff;
+      --primary-ink:#062033;
+
+      --good:#6ee7b7;
+      --warn:#fde68a;
+      --bad:#fb7185;
+
+      --radius-xl:22px;
+      --radius-lg:18px;
+      --radius-md:14px;
+
+      --shadow:0 14px 40px rgba(0,0,0,.45);
+      --shadow-soft:0 8px 26px rgba(0,0,0,.30);
+
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      --sans:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(155,209,255,.16), transparent 60%),
+        radial-gradient(1200px 800px at 80% 0%, rgba(110,231,183,.10), transparent 60%),
+        radial-gradient(900px 600px at 50% 120%, rgba(89,179,255,.10), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.35;
+    }
+
+    .app{max-width:1160px;margin:0 auto;padding:28px 18px 80px;display:grid;gap:16px}
+
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      padding:18px;border:1px solid var(--outline);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:var(--radius-xl);
+      box-shadow:var(--shadow-soft);
+      position:sticky;top:10px;backdrop-filter:blur(10px);z-index:5;
+    }
+
+    .brand{display:flex;align-items:center;gap:12px;min-width:240px}
+    .logo{
+      width:40px;height:40px;border-radius:14px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), rgba(255,255,255,.08) 46%, rgba(255,255,255,.00) 60%),
+        linear-gradient(135deg, rgba(155,209,255,.95), rgba(89,179,255,.60));
+      box-shadow:0 12px 24px rgba(89,179,255,.18);
+      border:1px solid rgba(255,255,255,.18);
+    }
+    .brand h1{font-size:16px;margin:0;letter-spacing:.2px}
+    .brand p{margin:2px 0 0;font-size:12px;color:var(--text-2)}
+
+    .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 12px;
+      border:1px solid var(--outline);border-radius:999px;background:rgba(255,255,255,.03);
+      color:var(--text-2);font-size:12px
+    }
+    .chip strong{color:var(--text);font-weight:600}
+
+    .btn{
+      display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
+      color:var(--text);font-weight:700;cursor:pointer;
+    }
+    .btn:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.06)}
+    .btn.primary{
+      background:linear-gradient(180deg, rgba(155,209,255,.95), rgba(89,179,255,.65));
+      border-color:rgba(255,255,255,.22);color:var(--primary-ink);
+    }
+    .btn.primary:hover{filter:brightness(1.05)}
+    .btn.danger{
+      background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.25);
+      color:rgba(255,255,255,.88);
+    }
+    .btn.danger:hover{background:rgba(251,113,133,.16);border-color:rgba(251,113,133,.32)}
+
+    .grid{display:grid;grid-template-columns:1.3fr .9fr;gap:16px;align-items:start}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}.brand{min-width:unset}}
+
+    .card{
+      border:1px solid var(--outline);
+      background:rgba(255,255,255,.03);
+      border-radius:var(--radius-xl);
+      box-shadow:var(--shadow-soft);
+      overflow:clip;
+    }
+    .head{
+      padding:16px 16px 10px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+      border-bottom:1px solid var(--outline);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.00));
+    }
+    .title{margin:0;font-size:14px;letter-spacing:.2px}
+    .sub{margin:0;font-size:12px;color:var(--text-2)}
+    .body{padding:14px 16px 16px}
+
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:620px){.row{grid-template-columns:1fr}}
+
+    label{display:block;font-size:12px;color:var(--text-2);margin-bottom:6px}
+    input[type="text"], input[type="date"], input[type="number"], textarea, select{
+      width:100%;padding:12px;border-radius:14px;border:1px solid var(--outline);
+      background:rgba(0,0,0,.18);color:var(--text);outline:none;
+    }
+    textarea{min-height:92px;resize:vertical}
+    input:focus, textarea:focus, select:focus{
+      border-color:rgba(155,209,255,.55);
+      box-shadow:0 0 0 4px rgba(155,209,255,.12);
+    }
+
+    .divider{height:1px;background:var(--outline);margin:14px 0}
+
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    @media (max-width:620px){.kpi{grid-template-columns:1fr}}
+    .pill{
+      padding:12px;border-radius:16px;border:1px solid var(--outline);
+      background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px;min-height:72px;
+    }
+    .pill .big{font-size:16px;font-weight:800;letter-spacing:.2px}
+    .pill .small{font-size:12px;color:var(--text-2)}
+
+    .note{font-size:12px;color:var(--text-2);margin-top:10px}
+
+    .bars{display:grid;gap:10px}
+    .bar{
+      border:1px solid var(--outline);
+      background:rgba(255,255,255,.02);
+      border-radius:16px;padding:12px;display:grid;gap:8px;
+    }
+    .bar .top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .bar .name{font-size:12px;color:var(--text-2)}
+    .bar .pct{font-size:12px;color:var(--text);font-family:var(--mono)}
+    .track{
+      height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .fill{
+      height:100%;width:0%;border-radius:999px;
+      background:linear-gradient(90deg, rgba(155,209,255,.92), rgba(89,179,255,.65));
+      transition:width .25s ease;
+    }
+    .fill.good{background:linear-gradient(90deg, rgba(110,231,183,.92), rgba(110,231,183,.55))}
+    .fill.warn{background:linear-gradient(90deg, rgba(253,230,138,.90), rgba(253,230,138,.55))}
+    .fill.bad{background:linear-gradient(90deg, rgba(251,113,133,.90), rgba(251,113,133,.55))}
+
+    /* Calendar */
+    .calendar{display:grid;gap:10px}
+    .cal-head{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;
+      border-radius:16px;border:1px solid var(--outline);background:rgba(255,255,255,.02);
+    }
+    .cal-head .month{font-weight:900;letter-spacing:.3px}
+    .cal-head .hint{font-size:12px;color:var(--text-2)}
+    .cal-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+
+    .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:0 2px}
+    .dow div{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;padding:6px 8px}
+
+    .gridcal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .day{
+      border:1px solid var(--outline);
+      background:rgba(255,255,255,.02);
+      border-radius:16px;min-height:92px;padding:10px;display:flex;flex-direction:column;gap:8px;
+      cursor:pointer;
+    }
+    .day:hover{border-color:rgba(255,255,255,.20);background:rgba(255,255,255,.03)}
+    .day.muted{opacity:.55;cursor:default}
+    .day.selected{border-color:rgba(155,209,255,.55);box-shadow:0 0 0 4px rgba(155,209,255,.12)}
+    .n{
+      font-size:12px;color:var(--text-2);display:flex;justify-content:space-between;align-items:center;gap:8px;
+      font-family:var(--mono);
+    }
+    .badges{display:flex;gap:6px;flex-wrap:wrap}
+    .badge{
+      font-size:10px;padding:4px 8px;border-radius:999px;border:1px solid var(--outline-2);
+      color:var(--text-2);background:rgba(255,255,255,.03);white-space:nowrap;
+    }
+    .badge.primary{border-color:rgba(155,209,255,.35);color:rgba(155,209,255,.95);background:rgba(155,209,255,.08)}
+    .badge.good{border-color:rgba(110,231,183,.35);color:rgba(110,231,183,.95);background:rgba(110,231,183,.08)}
+    .badge.warn{border-color:rgba(253,230,138,.35);color:rgba(253,230,138,.95);background:rgba(253,230,138,.08)}
+    .badge.bad{border-color:rgba(251,113,133,.35);color:rgba(251,113,133,.95);background:rgba(251,113,133,.08)}
+    .day .mini{
+      font-size:12px;color:var(--text-3);
+      overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    }
+
+    /* Toast */
+    .toast{
+      position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+      padding:12px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(20,27,32,.88);backdrop-filter:blur(10px);
+      color:var(--text);box-shadow:var(--shadow-soft);
+      opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;
+      font-size:12px;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-2px)}
+    .toast span{color:var(--text-2)}
+    .file{
+      display:none;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Daily System Tracker</h1>
+          <p>Wins • Creatives • Workout • Play • Calendar</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <span class="chip">Selected: <strong id="selectedLabel" style="font-family:var(--mono)"></strong></span>
+        <button class="btn" id="btnToday" type="button">Today</button>
+        <button class="btn" id="btnExport" type="button">Export JSON</button>
+        <button class="btn" id="btnImport" type="button">Import JSON</button>
+        <button class="btn danger" id="btnDelete" type="button" title="Delete selected day">Delete Day</button>
+        <button class="btn primary" id="btnSave" type="button">Save</button>
+        <input class="file" id="importFile" type="file" accept="application/json" />
+      </div>
+    </header>
+
+    <section class="grid">
+      <!-- Left -->
+      <div class="card">
+        <div class="head">
+          <div>
+            <h2 class="title">Day Log</h2>
+            <p class="sub">Keep it small and tangible. One win is success. Two is optional.</p>
+          </div>
+          <span class="chip">Targets: <strong>Wins 1–2</strong> • <strong>Creatives 1–2</strong></span>
+        </div>
+
+        <div class="body">
+          <div class="kpi">
+            <div class="pill">
+              <div class="big">Wins</div>
+              <div class="small">1–2 tangible deliverables</div>
+            </div>
+            <div class="pill">
+              <div class="big">Creatives</div>
+              <div class="small">1–2 expressive outputs</div>
+            </div>
+            <div class="pill">
+              <div class="big">Maintenance</div>
+              <div class="small">Workout + Play (time-boxed)</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <div>
+              <label for="dateInput">Date</label>
+              <input id="dateInput" type="date" />
+            </div>
+            <div>
+              <label for="workoutMins">Workout (minutes)</label>
+              <input id="workoutMins" type="number" min="0" step="5" placeholder="30" />
+            </div>
+
+            <div>
+              <label for="win1">Win #1</label>
+              <input id="win1" type="text" placeholder="e.g., Fix NPC pathing jitter near shelves" />
+            </div>
+            <div>
+              <label for="win2">Win #2 (optional)</label>
+              <input id="win2" type="text" placeholder="e.g., Add checkout queue logic (ugly but working)" />
+            </div>
+
+            <div>
+              <label for="cre1">Creative #1</label>
+              <input id="cre1" type="text" placeholder="e.g., 15s clip: restock loop + caption draft" />
+            </div>
+            <div>
+              <label for="cre2">Creative #2 (optional)</label>
+              <input id="cre2" type="text" placeholder="e.g., Capsule art experiment" />
+            </div>
+
+            <div>
+              <label for="playCount">Play sessions</label>
+              <select id="playCount">
+                <option>0</option>
+                <option selected>1</option>
+                <option>2</option>
+              </select>
+            </div>
+            <div>
+              <label for="mood">Energy / mood (optional)</label>
+              <select id="mood">
+                <option value="">—</option>
+                <option value="low">Low</option>
+                <option value="ok">OK</option>
+                <option value="good">Good</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <label for="shutdown">Shutdown note (5–10 mins)</label>
+          <textarea id="shutdown" placeholder="Wins completed:
+- ...
+
+Parked for tomorrow:
+- ...
+
+Friction / blockers:
+- ..."></textarea>
+
+          <p class="note" id="autosaveNote">
+            Saves to your browser’s LocalStorage. Export JSON if you want a backup.
+          </p>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div style="display:grid;gap:16px;">
+        <div class="card">
+          <div class="head">
+            <div>
+              <h2 class="title">Weekly Tracker (last 7 days)</h2>
+              <p class="sub">Auto-calculated from saved entries.</p>
+            </div>
+          </div>
+          <div class="body">
+            <div class="bars">
+              <div class="bar">
+                <div class="top">
+                  <div class="name">Wins (target 7–14)</div>
+                  <div class="pct" id="winsPct">0/14 • 0%</div>
+                </div>
+                <div class="track"><div class="fill" id="winsFill"></div></div>
+              </div>
+
+              <div class="bar">
+                <div class="top">
+                  <div class="name">Creatives (target 7–14)</div>
+                  <div class="pct" id="crePct">0/14 • 0%</div>
+                </div>
+                <div class="track"><div class="fill" id="creFill"></div></div>
+              </div>
+
+              <div class="bar">
+                <div class="top">
+                  <div class="name">Workouts (target 4–7)</div>
+                  <div class="pct" id="woPct">0/7 • 0%</div>
+                </div>
+                <div class="track"><div class="fill good" id="woFill"></div></div>
+              </div>
+
+              <div class="bar">
+                <div class="top">
+                  <div class="name">Play sessions (target 5–10)</div>
+                  <div class="pct" id="playPct">0/10 • 0%</div>
+                </div>
+                <div class="track"><div class="fill warn" id="playFill"></div></div>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="row">
+              <div>
+                <label for="targetMode">Tracker targets</label>
+                <select id="targetMode">
+                  <option value="standard" selected>Standard (Wins/Creatives up to 14)</option>
+                  <option value="minimum">Minimum (Wins/Creatives up to 7)</option>
+                  <option value="aggressive">Aggressive (Wins/Creatives up to 20)</option>
+                </select>
+              </div>
+              <div>
+                <label for="weekAnchor">Week anchor (today)</label>
+                <input id="weekAnchor" type="date" />
+              </div>
+            </div>
+
+            <p class="note">
+              “Wins” and “Creatives” count how many non-empty items you logged (Win #1, Win #2, etc.) across the last 7 days.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="head">
+            <div>
+              <h2 class="title">Calendar</h2>
+              <p class="sub">Click a day to edit. Badges show what you logged.</p>
+            </div>
+          </div>
+
+          <div class="body calendar">
+            <div class="cal-head">
+              <div>
+                <div class="month" id="monthLabel">—</div>
+                <div class="hint">Use the month/year controls on the right.</div>
+              </div>
+
+              <div class="cal-controls">
+                <select id="calMonth" title="Month"></select>
+                <select id="calYear" title="Year"></select>
+                <button class="btn" id="btnPrev" type="button">Prev</button>
+                <button class="btn" id="btnNext" type="button">Next</button>
+              </div>
+            </div>
+
+            <div class="dow">
+              <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+            </div>
+
+            <div class="gridcal" id="calGrid"></div>
+
+            <div class="note">
+              Badges: <span class="badge primary">win</span> <span class="badge good">creative</span>
+              <span class="badge warn">workout</span> <span class="badge bad">play</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">Saved. <span id="toastHint"></span></div>
+
+  <script>
+    (function(){
+      // --------------------------
+      // Storage model
+      // --------------------------
+      const STORAGE_KEY = "daily_system_tracker_v1";
+
+      /** @type {Record<string, any>} */
+      let db = loadDB();
+
+      // --------------------------
+      // DOM
+      // --------------------------
+      const dateInput = document.getElementById("dateInput");
+      const selectedLabel = document.getElementById("selectedLabel");
+
+      const win1 = document.getElementById("win1");
+      const win2 = document.getElementById("win2");
+      const cre1 = document.getElementById("cre1");
+      const cre2 = document.getElementById("cre2");
+      const workoutMins = document.getElementById("workoutMins");
+      const playCount = document.getElementById("playCount");
+      const mood = document.getElementById("mood");
+      const shutdown = document.getElementById("shutdown");
+
+      const btnSave = document.getElementById("btnSave");
+      const btnToday = document.getElementById("btnToday");
+      const btnDelete = document.getElementById("btnDelete");
+      const btnExport = document.getElementById("btnExport");
+      const btnImport = document.getElementById("btnImport");
+      const importFile = document.getElementById("importFile");
+
+      const winsPct = document.getElementById("winsPct");
+      const crePct = document.getElementById("crePct");
+      const woPct = document.getElementById("woPct");
+      const playPct = document.getElementById("playPct");
+
+      const winsFill = document.getElementById("winsFill");
+      const creFill = document.getElementById("creFill");
+      const woFill = document.getElementById("woFill");
+      const playFill = document.getElementById("playFill");
+
+      const targetMode = document.getElementById("targetMode");
+      const weekAnchor = document.getElementById("weekAnchor");
+
+      const monthLabel = document.getElementById("monthLabel");
+      const calMonth = document.getElementById("calMonth");
+      const calYear = document.getElementById("calYear");
+      const btnPrev = document.getElementById("btnPrev");
+      const btnNext = document.getElementById("btnNext");
+      const calGrid = document.getElementById("calGrid");
+
+      const toast = document.getElementById("toast");
+      const toastHint = document.getElementById("toastHint");
+
+      // --------------------------
+      // Date helpers (local)
+      // --------------------------
+      function pad2(n){ return String(n).padStart(2,"0"); }
+      function toISODate(d){
+        return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
+      }
+      function fromISODate(s){
+        // s is YYYY-MM-DD
+        const [y,m,d] = s.split("-").map(Number);
+        return new Date(y, m-1, d);
+      }
+      function addDays(d, n){
+        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        x.setDate(x.getDate() + n);
+        return x;
+      }
+      function startOfDay(d){
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+      function formatHuman(s){
+        const d = fromISODate(s);
+        const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+      }
+
+      // Mon=0 .. Sun=6
+      function mondayIndex(d){
+        // JS: Sun=0..Sat=6
+        const js = d.getDay();
+        return (js + 6) % 7;
+      }
+
+      // --------------------------
+      // DB functions
+      // --------------------------
+      function loadDB(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if(!raw) return {};
+          const parsed = JSON.parse(raw);
+          if(parsed && typeof parsed === "object") return parsed;
+          return {};
+        }catch{
+          return {};
+        }
+      }
+
+      function saveDB(){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      }
+
+      function getEntry(dateStr){
+        return db[dateStr] || {
+          win1:"", win2:"", cre1:"", cre2:"",
+          workoutMins:0, playCount:0,
+          mood:"", shutdown:""
+        };
+      }
+
+      function setEntry(dateStr, entry){
+        db[dateStr] = entry;
+        saveDB();
+      }
+
+      function deleteEntry(dateStr){
+        delete db[dateStr];
+        saveDB();
+      }
+
+      // --------------------------
+      // UI: load/save current date
+      // --------------------------
+      let selectedDate = toISODate(new Date());
+
+      function syncSelectedUI(){
+        dateInput.value = selectedDate;
+        selectedLabel.textContent = selectedDate;
+      }
+
+      function loadForm(dateStr){
+        const e = getEntry(dateStr);
+        win1.value = e.win1 || "";
+        win2.value = e.win2 || "";
+        cre1.value = e.cre1 || "";
+        cre2.value = e.cre2 || "";
+        workoutMins.value = Number(e.workoutMins || 0);
+        playCount.value = String(Number(e.playCount || 0));
+        mood.value = e.mood || "";
+        shutdown.value = e.shutdown || "";
+        toastHint.textContent = formatHuman(dateStr);
+      }
+
+      function readForm(){
+        return {
+          win1: win1.value.trim(),
+          win2: win2.value.trim(),
+          cre1: cre1.value.trim(),
+          cre2: cre2.value.trim(),
+          workoutMins: clampInt(workoutMins.value, 0, 600),
+          playCount: clampInt(playCount.value, 0, 2),
+          mood: mood.value || "",
+          shutdown: shutdown.value.trim()
+        };
+      }
+
+      function clampInt(v, min, max){
+        const n = Math.floor(Number(v));
+        if(Number.isNaN(n)) return min;
+        return Math.max(min, Math.min(max, n));
+      }
+
+      function saveCurrent(){
+        const entry = readForm();
+        // Don't store totally empty days unless user explicitly saved and something is present.
+        const hasAnything =
+          entry.win1 || entry.win2 || entry.cre1 || entry.cre2 ||
+          entry.workoutMins > 0 || entry.playCount > 0 ||
+          entry.mood || entry.shutdown;
+
+        if(hasAnything){
+          setEntry(selectedDate, entry);
+          showToast("Saved.");
+        }else{
+          // If empty, delete existing to keep db clean
+          if(db[selectedDate]){
+            deleteEntry(selectedDate);
+            showToast("Cleared (empty day).");
+          }else{
+            showToast("Nothing to save.");
+          }
+        }
+        refreshAll();
+      }
+
+      function showToast(msg){
+        toast.firstChild.textContent = msg + " ";
+        toast.classList.add("show");
+        setTimeout(()=>toast.classList.remove("show"), 1600);
+      }
+
+      // --------------------------
+      // Weekly tracker
+      // --------------------------
+      function getTargets(){
+        const mode = targetMode.value;
+        if(mode === "minimum"){
+          return { winsMax: 7, creMax: 7, woMax: 7, playMax: 10 };
+        }
+        if(mode === "aggressive"){
+          return { winsMax: 20, creMax: 20, woMax: 7, playMax: 10 };
+        }
+        return { winsMax: 14, creMax: 14, woMax: 7, playMax: 10 };
+      }
+
+      function computeWeekly(){
+        const anchor = weekAnchor.value ? fromISODate(weekAnchor.value) : new Date();
+        const end = startOfDay(anchor); // inclusive end day
+        const start = addDays(end, -6); // 7 days
+        const targets = getTargets();
+
+        let wins = 0, cre = 0, woDays = 0, play = 0;
+
+        for(let i=0;i<7;i++){
+          const day = addDays(start, i);
+          const key = toISODate(day);
+          const e = db[key];
+          if(!e) continue;
+
+          if((e.win1||"").trim()) wins++;
+          if((e.win2||"").trim()) wins++;
+          if((e.cre1||"").trim()) cre++;
+          if((e.cre2||"").trim()) cre++;
+
+          const wo = Number(e.workoutMins||0);
+          if(wo > 0) woDays++;
+
+          play += Number(e.playCount||0);
+        }
+
+        setBar(wins, targets.winsMax, winsPct, winsFill);
+        setBar(cre, targets.creMax, crePct, creFill);
+        setBar(woDays, targets.woMax, woPct, woFill);
+        setBar(play, targets.playMax, playPct, playFill);
+      }
+
+      function setBar(value, max, labelEl, fillEl){
+        const pct = max <= 0 ? 0 : Math.round((value / max) * 100);
+        const clamped = Math.max(0, Math.min(100, pct));
+        labelEl.textContent = `${value}/${max} • ${clamped}%`;
+        fillEl.style.width = clamped + "%";
+      }
+
+      // --------------------------
+      // Calendar
+      // --------------------------
+      const monthNames = [
+        "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+      ];
+
+      function initMonthYearControls(){
+        // month
+        calMonth.innerHTML = "";
+        monthNames.forEach((m, idx)=>{
+          const opt = document.createElement("option");
+          opt.value = String(idx);
+          opt.textContent = m;
+          calMonth.appendChild(opt);
+        });
+
+        // year range
+        const now = new Date();
+        const y0 = now.getFullYear() - 5;
+        const y1 = now.getFullYear() + 5;
+        calYear.innerHTML = "";
+        for(let y=y0; y<=y1; y++){
+          const opt = document.createElement("option");
+          opt.value = String(y);
+          opt.textContent = String(y);
+          calYear.appendChild(opt);
+        }
+
+        // default to current month/year
+        calMonth.value = String(now.getMonth());
+        calYear.value = String(now.getFullYear());
+      }
+
+      function renderCalendar(){
+        const m = Number(calMonth.value);
+        const y = Number(calYear.value);
+        monthLabel.textContent = `${monthNames[m]} ${y}`;
+
+        calGrid.innerHTML = "";
+
+        const first = new Date(y, m, 1);
+        const last = new Date(y, m+1, 0);
+
+        // We want Monday-first grid. Determine leading blanks.
+        // mondayIndex: Mon=0..Sun=6
+        const lead = mondayIndex(first); // number of blanks from prev month
+
+        // Total cells: 6 weeks (42) for consistent layout
+        const totalCells = 42;
+
+        // Start date for the grid
+        const gridStart = addDays(first, -lead);
+
+        for(let i=0; i<totalCells; i++){
+          const d = addDays(gridStart, i);
+          const iso = toISODate(d);
+          const isInMonth = d.getMonth() === m;
+
+          const cell = document.createElement("div");
+          cell.className = "day" + (isInMonth ? "" : " muted") + (iso === selectedDate ? " selected" : "");
+          cell.dataset.date = iso;
+
+          const top = document.createElement("div");
+          top.className = "n";
+
+          const left = document.createElement("span");
+          left.textContent = pad2(d.getDate());
+
+          const right = document.createElement("span");
+          // badges summary
+          const badges = buildBadges(iso);
+          right.innerHTML = badges.countText;
+
+          top.appendChild(left);
+          top.appendChild(right);
+
+          const badgesRow = document.createElement("div");
+          badgesRow.className = "badges";
+          badgesRow.innerHTML = badges.html;
+
+          const mini = document.createElement("div");
+          mini.className = "mini";
+          mini.textContent = badges.preview || "";
+
+          cell.appendChild(top);
+          cell.appendChild(badgesRow);
+          cell.appendChild(mini);
+
+          if(isInMonth){
+            cell.addEventListener("click", ()=>{
+              selectDate(iso);
+            });
+          }
+
+          calGrid.appendChild(cell);
+        }
+      }
+
+      function buildBadges(dateStr){
+        const e = db[dateStr];
+        let html = "";
+        let preview = "";
+
+        let winCount = 0, creCount = 0;
+        let wo = 0, play = 0;
+
+        if(e){
+          if((e.win1||"").trim()) winCount++;
+          if((e.win2||"").trim()) winCount++;
+          if((e.cre1||"").trim()) creCount++;
+          if((e.cre2||"").trim()) creCount++;
+          wo = Number(e.workoutMins||0);
+          play = Number(e.playCount||0);
+
+          preview = (e.win1 || e.cre1 || e.shutdown || "").trim();
+        }
+
+        if(winCount > 0) html += `<span class="badge primary">win ${winCount}</span>`;
+        if(creCount > 0) html += `<span class="badge good">cre ${creCount}</span>`;
+        if(wo > 0) html += `<span class="badge warn">wo</span>`;
+        if(play > 0) html += `<span class="badge bad">play ${play}</span>`;
+
+        const countText = (winCount + creCount + (wo>0?1:0) + (play>0?1:0)) > 0 ? "•" : "";
+
+        return { html, preview, countText };
+      }
+
+      function selectDate(iso){
+        // If the user has unsaved edits, save explicitly (no autosave to avoid surprises).
+        selectedDate = iso;
+        syncSelectedUI();
+        loadForm(selectedDate);
+        refreshAll();
+      }
+
+      // --------------------------
+      // Export / import
+      // --------------------------
+      function exportJSON(){
+        const payload = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          data: db
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `daily-system-tracker_${toISODate(new Date())}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        showToast("Exported.");
+      }
+
+      async function importJSONFile(file){
+        const text = await file.text();
+        let parsed;
+        try{
+          parsed = JSON.parse(text);
+        }catch{
+          showToast("Invalid JSON.");
+          return;
+        }
+        const incoming = parsed && parsed.data && typeof parsed.data === "object" ? parsed.data : null;
+        if(!incoming){
+          showToast("No data found.");
+          return;
+        }
+
+        // Merge strategy: incoming overwrites same dates.
+        db = { ...db, ...incoming };
+        saveDB();
+        showToast("Imported.");
+        refreshAll();
+        loadForm(selectedDate);
+      }
+
+      // --------------------------
+      // Refresh
+      // --------------------------
+      function refreshAll(){
+        computeWeekly();
+        renderCalendar();
+      }
+
+      // --------------------------
+      // Wire events
+      // --------------------------
+      btnSave.addEventListener("click", saveCurrent);
+
+      btnToday.addEventListener("click", ()=>{
+        const today = toISODate(new Date());
+        selectDate(today);
+        // also align calendar to today
+        const d = new Date();
+        calMonth.value = String(d.getMonth());
+        calYear.value = String(d.getFullYear());
+        renderCalendar();
+      });
+
+      btnDelete.addEventListener("click", ()=>{
+        if(db[selectedDate]){
+          deleteEntry(selectedDate);
+          showToast("Deleted day.");
+          loadForm(selectedDate);
+          refreshAll();
+        }else{
+          showToast("Nothing to delete.");
+        }
+      });
+
+      btnExport.addEventListener("click", exportJSON);
+
+      btnImport.addEventListener("click", ()=> importFile.click());
+      importFile.addEventListener("change", ()=>{
+        const f = importFile.files && importFile.files[0];
+        if(f) importJSONFile(f);
+        importFile.value = "";
+      });
+
+      targetMode.addEventListener("change", refreshAll);
+
+      weekAnchor.addEventListener("change", computeWeekly);
+
+      calMonth.addEventListener("change", renderCalendar);
+      calYear.addEventListener("change", renderCalendar);
+
+      btnPrev.addEventListener("click", ()=>{
+        let m = Number(calMonth.value);
+        let y = Number(calYear.value);
+        m--;
+        if(m < 0){ m = 11; y--; }
+        calMonth.value = String(m);
+        calYear.value = String(y);
+        renderCalendar();
+      });
+
+      btnNext.addEventListener("click", ()=>{
+        let m = Number(calMonth.value);
+        let y = Number(calYear.value);
+        m++;
+        if(m > 11){ m = 0; y++; }
+        calMonth.value = String(m);
+        calYear.value = String(y);
+        renderCalendar();
+      });
+
+      // Keep selected date in sync if user edits date input directly
+      dateInput.addEventListener("change", ()=>{
+        const v = dateInput.value;
+        if(!v) return;
+        selectDate(v);
+        // align calendar to that month
+        const d = fromISODate(v);
+        calMonth.value = String(d.getMonth());
+        calYear.value = String(d.getFullYear());
+        renderCalendar();
+      });
+
+      // --------------------------
+      // Init
+      // --------------------------
+      function init(){
+        initMonthYearControls();
+
+        const today = toISODate(new Date());
+        selectedDate = today;
+        syncSelectedUI();
+
+        dateInput.value = selectedDate;
+        selectedLabel.textContent = selectedDate;
+
+        weekAnchor.value = today;
+
+        // Load form + calendar defaults
+        loadForm(selectedDate);
+
+        // Set calendar to current month/year
+        const now = new Date();
+        calMonth.value = String(now.getMonth());
+        calYear.value = String(now.getFullYear());
+
+        refreshAll();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
