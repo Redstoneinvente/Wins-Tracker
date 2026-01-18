@@ -633,9 +633,49 @@ Friction / blockers:
       fb.db = getFirestore(fb.app);
       fb.auth = getAuth(fb.app);
 
-      // Anonymous auth keeps it simple (no login UI)
-      signInAnonymously(fb.auth).catch(()=>{ /* ignore, UI will stay local-only */ });
+// After fb.auth = getAuth(fb.app)
+try {
+  await setPersistence(fb.auth, browserLocalPersistence);
+} catch { /* ignore */ }
 
+let didAutoAnon = false;
+
+onAuthStateChanged(fb.auth, async (user) => {
+  if (user) {
+    fb.uid = user.uid;
+    fb.ready = true;
+
+    // Display email if present, else anonymous label
+    const label = user.email ? user.email : (user.isAnonymous ? "anonymous" : "user");
+    document.getElementById("uidLabel").textContent = label;
+
+    document.getElementById("syncNote").textContent =
+      "Local saves + Firestore sync enabled. Export JSON for backups.";
+
+    // Prefetch current month
+    prefetchMonthFromFirestore();
+    return;
+  }
+
+  // No user restored -> sign in anonymously once
+  fb.uid = null;
+  fb.ready = false;
+  document.getElementById("uidLabel").textContent = "local";
+
+  if (!didAutoAnon) {
+    didAutoAnon = true;
+    try {
+      await signInAnonymously(fb.auth);
+    } catch {
+      // stay local only
+    }
+  }
+});
+
+
+      // Anonymous auth keeps it simple (no login UI)
+      //signInAnonymously(fb.auth).catch(()=>{ /* ignore, UI will stay local-only */ });
+<!-- 
       onAuthStateChanged(fb.auth, (user)=>{
         if(user){
           fb.uid = user.uid;
@@ -650,7 +690,7 @@ Friction / blockers:
           fb.ready = false;
           document.getElementById("uidLabel").textContent = "local";
         }
-      });
+      }); -->
     }catch{
       // If Firebase fails, app continues locally.
       fb.ready = false;
@@ -715,111 +755,8 @@ Friction / blockers:
     // ============================
     // Date helpers
     // ============================
-// ============================
-// Email/Password Auth UI
-// ============================
-const btnAuth = document.getElementById("btnAuth");
-const authModal = document.getElementById("authModal");
-const btnAuthClose = document.getElementById("btnAuthClose");
 
-const authEmail = document.getElementById("authEmail");
-const authPass  = document.getElementById("authPass");
-const authStatus= document.getElementById("authStatus");
-
-const btnSignIn = document.getElementById("btnSignIn");
-const btnSignUp = document.getElementById("btnSignUp");
-const btnLink   = document.getElementById("btnLink");
-const btnSignOut= document.getElementById("btnSignOut");
-
-function openAuth(){
-  authModal.style.display = "block";
-}
-function closeAuth(){
-  authModal.style.display = "none";
-}
-btnAuth?.addEventListener("click", openAuth);
-btnAuthClose?.addEventListener("click", closeAuth);
-authModal?.addEventListener("click", (e)=>{ if(e.target === authModal) closeAuth(); });
-
-function setAuthStatus(msg){
-  authStatus.textContent = msg || "";
-}
-
-function requireEmailPass(){
-  const email = (authEmail.value || "").trim();
-  const pass  = (authPass.value || "");
-  if(!email || !pass){
-    setAuthStatus("Enter email and password.");
-    return null;
-  }
-  return { email, pass };
-}
-
-// Sign in
-btnSignIn?.addEventListener("click", async ()=>{
-  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
-  const v = requireEmailPass();
-  if(!v) return;
-
-  try{
-    await signInWithEmailAndPassword(fb.auth, v.email, v.pass);
-    setAuthStatus("Signed in.");
-    closeAuth();
-  }catch(err){
-    setAuthStatus("Sign in failed: " + (err?.code || err?.message || "unknown"));
-  }
-});
-
-// Sign up (creates account)
-btnSignUp?.addEventListener("click", async ()=>{
-  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
-  const v = requireEmailPass();
-  if(!v) return;
-
-  try{
-    await createUserWithEmailAndPassword(fb.auth, v.email, v.pass);
-    setAuthStatus("Account created and signed in.");
-    closeAuth();
-  }catch(err){
-    setAuthStatus("Sign up failed: " + (err?.code || err?.message || "unknown"));
-  }
-});
-
-// Link (important): converts anonymous -> email/pass WITHOUT losing data
-btnLink?.addEventListener("click", async ()=>{
-  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
-  const v = requireEmailPass();
-  if(!v) return;
-
-  try{
-    const user = fb.auth.currentUser;
-    if(!user) return setAuthStatus("No active user session.");
-
-    const cred = EmailAuthProvider.credential(v.email, v.pass);
-    await linkWithCredential(user, cred);
-
-    setAuthStatus("Linked. This account now has email/password. Data kept.");
-    closeAuth();
-  }catch(err){
-    setAuthStatus("Link failed: " + (err?.code || err?.message || "unknown"));
-  }
-});
-
-// Sign out
-btnSignOut?.addEventListener("click", async ()=>{
-  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
-  try{
-    await signOut(fb.auth);
-    setAuthStatus("Signed out.");
-    // optional: re-enter anonymous immediately so app still syncs
-    try{ await signInAnonymously(fb.auth); }catch{}
-    closeAuth();
-  }catch(err){
-    setAuthStatus("Sign out failed: " + (err?.code || err?.message || "unknown"));
-  }
-});
-
-
+    
     function pad2(n){ return String(n).padStart(2,"0"); }
     function toISODate(d){
       return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
