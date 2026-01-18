@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Daily System Tracker</title>
+  <title>Daily System Tracker (M3 + Streaks + Firebase)</title>
+
   <style>
     :root{
       --bg:#0f1418;
@@ -59,7 +60,7 @@
       position:sticky;top:10px;backdrop-filter:blur(10px);z-index:5;
     }
 
-    .brand{display:flex;align-items:center;gap:12px;min-width:240px}
+    .brand{display:flex;align-items:center;gap:12px;min-width:260px}
     .logo{
       width:40px;height:40px;border-radius:14px;
       background:
@@ -77,12 +78,13 @@
       border:1px solid var(--outline);border-radius:999px;background:rgba(255,255,255,.03);
       color:var(--text-2);font-size:12px
     }
-    .chip strong{color:var(--text);font-weight:600}
+    .chip strong{color:var(--text);font-weight:700}
+    .chip .mono{font-family:var(--mono)}
 
     .btn{
       display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;
       border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
-      color:var(--text);font-weight:700;cursor:pointer;
+      color:var(--text);font-weight:800;cursor:pointer;
     }
     .btn:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.06)}
     .btn.primary{
@@ -95,6 +97,9 @@
       color:rgba(255,255,255,.88);
     }
     .btn.danger:hover{background:rgba(251,113,133,.16);border-color:rgba(251,113,133,.32)}
+    .btn.small{padding:8px 10px;font-size:12px;font-weight:800}
+
+    .file{display:none}
 
     .grid{display:grid;grid-template-columns:1.3fr .9fr;gap:16px;align-items:start}
     @media (max-width:980px){.grid{grid-template-columns:1fr}.brand{min-width:unset}}
@@ -114,6 +119,18 @@
     .title{margin:0;font-size:14px;letter-spacing:.2px}
     .sub{margin:0;font-size:12px;color:var(--text-2)}
     .body{padding:14px 16px 16px}
+    .divider{height:1px;background:var(--outline);margin:14px 0}
+   .note{
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 16px;     /* was 10px */
+  line-height: 1.6;
+  padding-top: 4px;
+}
+.note + .note{
+  margin-top: 20px;
+}
+
 
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media (max-width:620px){.row{grid-template-columns:1fr}}
@@ -124,12 +141,18 @@
       background:rgba(0,0,0,.18);color:var(--text);outline:none;
     }
     textarea{min-height:92px;resize:vertical}
+
+    /* Fix dropdown text contrast + menu colors */
+    select{color:var(--text)}
+    option{
+      background: #0f1418; /* dropdown panel */
+      color: rgba(255,255,255,.92);
+    }
+
     input:focus, textarea:focus, select:focus{
       border-color:rgba(155,209,255,.55);
       box-shadow:0 0 0 4px rgba(155,209,255,.12);
     }
-
-    .divider{height:1px;background:var(--outline);margin:14px 0}
 
     .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     @media (max-width:620px){.kpi{grid-template-columns:1fr}}
@@ -137,10 +160,31 @@
       padding:12px;border-radius:16px;border:1px solid var(--outline);
       background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px;min-height:72px;
     }
-    .pill .big{font-size:16px;font-weight:800;letter-spacing:.2px}
+    .pill .big{font-size:16px;font-weight:900;letter-spacing:.2px}
     .pill .small{font-size:12px;color:var(--text-2)}
 
-    .note{font-size:12px;color:var(--text-2);margin-top:10px}
+    .stack{display:grid;gap:10px}
+    .stackhead{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
+    .stackhead .hint{font-size:12px;color:var(--text-2)}
+    .stackitem{
+      display:flex;gap:10px;align-items:center;
+      border:1px solid var(--outline);
+      background:rgba(0,0,0,.14);
+      padding:10px;border-radius:16px;
+    }
+    .stackitem input[type="text"]{border-radius:12px;padding:12px;border-color:rgba(255,255,255,.10)}
+    .stackitem .idx{
+      width:28px;height:28px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.03);
+      color:var(--text-2);
+      font-family:var(--mono);
+      font-size:12px;
+      flex:0 0 auto;
+    }
 
     .bars{display:grid;gap:10px}
     .bar{
@@ -164,6 +208,50 @@
     .fill.warn{background:linear-gradient(90deg, rgba(253,230,138,.90), rgba(253,230,138,.55))}
     .fill.bad{background:linear-gradient(90deg, rgba(251,113,133,.90), rgba(251,113,133,.55))}
 
+    /* Streak chips */
+    .streaks{
+      display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;
+    }
+.badge{
+  font-size: 10px;
+  padding: 6px 10px;          /* ensures breathing room */
+  border-radius: 999px;
+  border: 1px solid var(--outline-2);
+  line-height: 1.4;           /* vertical balance */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge.primary{
+  border-color: rgba(155,209,255,.35);
+  color: rgba(155,209,255,.95);
+  background: rgba(155,209,255,.08);
+}
+
+.badge.good{
+  border-color: rgba(110,231,183,.35);
+  color: rgba(110,231,183,.95);
+  background: rgba(110,231,183,.08);
+}
+
+.badge.warn{
+  border-color: rgba(253,230,138,.35);
+  color: rgba(253,230,138,.95);
+  background: rgba(253,230,138,.08);
+}
+
+.badge.bad{
+  border-color: rgba(251,113,133,.35);
+  color: rgba(251,113,133,.95);
+  background: rgba(251,113,133,.08);
+}
+
+.badge.mono{
+  font-family: var(--mono);
+}
+
+
     /* Calendar */
     .calendar{display:grid;gap:10px}
     .cal-head{
@@ -181,7 +269,7 @@
     .day{
       border:1px solid var(--outline);
       background:rgba(255,255,255,.02);
-      border-radius:16px;min-height:92px;padding:10px;display:flex;flex-direction:column;gap:8px;
+      border-radius:16px;min-height:96px;padding:10px;display:flex;flex-direction:column;gap:8px;
       cursor:pointer;
     }
     .day:hover{border-color:rgba(255,255,255,.20);background:rgba(255,255,255,.03)}
@@ -192,14 +280,6 @@
       font-family:var(--mono);
     }
     .badges{display:flex;gap:6px;flex-wrap:wrap}
-    .badge{
-      font-size:10px;padding:4px 8px;border-radius:999px;border:1px solid var(--outline-2);
-      color:var(--text-2);background:rgba(255,255,255,.03);white-space:nowrap;
-    }
-    .badge.primary{border-color:rgba(155,209,255,.35);color:rgba(155,209,255,.95);background:rgba(155,209,255,.08)}
-    .badge.good{border-color:rgba(110,231,183,.35);color:rgba(110,231,183,.95);background:rgba(110,231,183,.08)}
-    .badge.warn{border-color:rgba(253,230,138,.35);color:rgba(253,230,138,.95);background:rgba(253,230,138,.08)}
-    .badge.bad{border-color:rgba(251,113,133,.35);color:rgba(251,113,133,.95);background:rgba(251,113,133,.08)}
     .day .mini{
       font-size:12px;color:var(--text-3);
       overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
@@ -216,9 +296,6 @@
     }
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-2px)}
     .toast span{color:var(--text-2)}
-    .file{
-      display:none;
-    }
   </style>
 </head>
 
@@ -229,12 +306,13 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Daily System Tracker</h1>
-          <p>Wins • Creatives • Workout • Play • Calendar</p>
+          <p>Unlimited Wins/Creatives • Streaks • Calendar • Firebase Sync</p>
         </div>
       </div>
 
       <div class="controls">
-        <span class="chip">Selected: <strong id="selectedLabel" style="font-family:var(--mono)"></strong></span>
+        <span class="chip">User: <strong class="mono" id="uidLabel">local</strong></span>
+        <span class="chip">Selected: <strong class="mono" id="selectedLabel"></strong></span>
         <button class="btn" id="btnToday" type="button">Today</button>
         <button class="btn" id="btnExport" type="button">Export JSON</button>
         <button class="btn" id="btnImport" type="button">Import JSON</button>
@@ -250,7 +328,7 @@
         <div class="head">
           <div>
             <h2 class="title">Day Log</h2>
-            <p class="sub">Keep it small and tangible. One win is success. Two is optional.</p>
+            <p class="sub">Defaults to 2 slots, but you can add as many as you want.</p>
           </div>
           <span class="chip">Targets: <strong>Wins 1–2</strong> • <strong>Creatives 1–2</strong></span>
         </div>
@@ -284,29 +362,11 @@
             </div>
 
             <div>
-              <label for="win1">Win #1</label>
-              <input id="win1" type="text" placeholder="e.g., Fix NPC pathing jitter near shelves" />
-            </div>
-            <div>
-              <label for="win2">Win #2 (optional)</label>
-              <input id="win2" type="text" placeholder="e.g., Add checkout queue logic (ugly but working)" />
-            </div>
-
-            <div>
-              <label for="cre1">Creative #1</label>
-              <input id="cre1" type="text" placeholder="e.g., 15s clip: restock loop + caption draft" />
-            </div>
-            <div>
-              <label for="cre2">Creative #2 (optional)</label>
-              <input id="cre2" type="text" placeholder="e.g., Capsule art experiment" />
-            </div>
-
-            <div>
               <label for="playCount">Play sessions</label>
               <select id="playCount">
-                <option>0</option>
-                <option selected>1</option>
-                <option>2</option>
+                <option value="0">0</option>
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
               </select>
             </div>
             <div>
@@ -322,6 +382,40 @@
 
           <div class="divider"></div>
 
+          <!-- Wins dynamic -->
+          <div class="stack" id="winsStack">
+            <div class="stackhead">
+              <div>
+                <div style="font-weight:900;letter-spacing:.2px;">Wins</div>
+                <div class="hint">Add more if you want, but keep daily intent small.</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn small" id="addWin" type="button">+ Add win</button>
+                <button class="btn small danger" id="clearWins" type="button">Clear</button>
+              </div>
+            </div>
+            <div id="winsList"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Creatives dynamic -->
+          <div class="stack" id="creStack">
+            <div class="stackhead">
+              <div>
+                <div style="font-weight:900;letter-spacing:.2px;">Creatives</div>
+                <div class="hint">Output counts even if you do not post it.</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn small" id="addCre" type="button">+ Add creative</button>
+                <button class="btn small danger" id="clearCre" type="button">Clear</button>
+              </div>
+            </div>
+            <div id="creList"></div>
+          </div>
+
+          <div class="divider"></div>
+
           <label for="shutdown">Shutdown note (5–10 mins)</label>
           <textarea id="shutdown" placeholder="Wins completed:
 - ...
@@ -332,8 +426,8 @@ Parked for tomorrow:
 Friction / blockers:
 - ..."></textarea>
 
-          <p class="note" id="autosaveNote">
-            Saves to your browser’s LocalStorage. Export JSON if you want a backup.
+          <p class="note" id="syncNote">
+            Saves locally. If Firebase loads successfully, it also syncs to Firestore under your anonymous user.
           </p>
         </div>
       </div>
@@ -343,15 +437,15 @@ Friction / blockers:
         <div class="card">
           <div class="head">
             <div>
-              <h2 class="title">Weekly Tracker (last 7 days)</h2>
-              <p class="sub">Auto-calculated from saved entries.</p>
+              <h2 class="title">Weekly Tracker + Streaks</h2>
+              <p class="sub">Weekly = last 7 days. Streaks = consecutive days ending on the week anchor.</p>
             </div>
           </div>
           <div class="body">
             <div class="bars">
               <div class="bar">
                 <div class="top">
-                  <div class="name">Wins (target 7–14)</div>
+                  <div class="name">Wins (count of non-empty items)</div>
                   <div class="pct" id="winsPct">0/14 • 0%</div>
                 </div>
                 <div class="track"><div class="fill" id="winsFill"></div></div>
@@ -359,7 +453,7 @@ Friction / blockers:
 
               <div class="bar">
                 <div class="top">
-                  <div class="name">Creatives (target 7–14)</div>
+                  <div class="name">Creatives (count of non-empty items)</div>
                   <div class="pct" id="crePct">0/14 • 0%</div>
                 </div>
                 <div class="track"><div class="fill" id="creFill"></div></div>
@@ -367,7 +461,7 @@ Friction / blockers:
 
               <div class="bar">
                 <div class="top">
-                  <div class="name">Workouts (target 4–7)</div>
+                  <div class="name">Workouts (days with minutes &gt; 0)</div>
                   <div class="pct" id="woPct">0/7 • 0%</div>
                 </div>
                 <div class="track"><div class="fill good" id="woFill"></div></div>
@@ -375,7 +469,7 @@ Friction / blockers:
 
               <div class="bar">
                 <div class="top">
-                  <div class="name">Play sessions (target 5–10)</div>
+                  <div class="name">Play sessions (sum)</div>
                   <div class="pct" id="playPct">0/10 • 0%</div>
                 </div>
                 <div class="track"><div class="fill warn" id="playFill"></div></div>
@@ -394,13 +488,20 @@ Friction / blockers:
                 </select>
               </div>
               <div>
-                <label for="weekAnchor">Week anchor (today)</label>
+                <label for="weekAnchor">Week anchor (streak end)</label>
                 <input id="weekAnchor" type="date" />
               </div>
             </div>
 
+            <div class="streaks" id="streakChips"></div>
+
             <p class="note">
-              “Wins” and “Creatives” count how many non-empty items you logged (Win #1, Win #2, etc.) across the last 7 days.
+              Streak rules (ending on the anchor date):<br/>
+              <span class="badge primary">Win day</span> = at least one win item.<br/>
+              <span class="badge good">Creative day</span> = at least one creative item.<br/>
+              <span class="badge warn">Workout day</span> = workout minutes &gt; 0.<br/>
+              <span class="badge bad">Play day</span> = play sessions &gt; 0.<br/>
+              <span class="badge mono">Full day</span> = Win + Creative + Workout + Play in the same day.
             </p>
           </div>
         </div>
@@ -417,7 +518,7 @@ Friction / blockers:
             <div class="cal-head">
               <div>
                 <div class="month" id="monthLabel">—</div>
-                <div class="hint">Use the month/year controls on the right.</div>
+                <div class="hint">Month view pulls from local cache; Firebase month prefetch runs when available.</div>
               </div>
 
               <div class="cal-controls">
@@ -435,8 +536,8 @@ Friction / blockers:
             <div class="gridcal" id="calGrid"></div>
 
             <div class="note">
-              Badges: <span class="badge primary">win</span> <span class="badge good">creative</span>
-              <span class="badge warn">workout</span> <span class="badge bad">play</span>
+              Badges: <span class="badge primary">win</span> <span class="badge good">cre</span>
+              <span class="badge warn">wo</span> <span class="badge bad">play</span>
             </div>
           </div>
         </div>
@@ -446,547 +547,868 @@ Friction / blockers:
 
   <div class="toast" id="toast">Saved. <span id="toastHint"></span></div>
 
-  <script>
-    (function(){
-      // --------------------------
-      // Storage model
-      // --------------------------
-      const STORAGE_KEY = "daily_system_tracker_v1";
+  <!-- Firebase + App (module) -->
+  <script type="module">
+    // ============================
+    // Firebase (your config)
+    // ============================
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
 
-      /** @type {Record<string, any>} */
-      let db = loadDB();
+    // Firestore + Auth (needed to "push it to firebase")
+    import {
+      getFirestore, doc, setDoc, getDoc, deleteDoc,
+      collection, query, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-      // --------------------------
-      // DOM
-      // --------------------------
-      const dateInput = document.getElementById("dateInput");
-      const selectedLabel = document.getElementById("selectedLabel");
+    import {
+      getAuth, signInAnonymously, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
-      const win1 = document.getElementById("win1");
-      const win2 = document.getElementById("win2");
-      const cre1 = document.getElementById("cre1");
-      const cre2 = document.getElementById("cre2");
-      const workoutMins = document.getElementById("workoutMins");
-      const playCount = document.getElementById("playCount");
-      const mood = document.getElementById("mood");
-      const shutdown = document.getElementById("shutdown");
+    const firebaseConfig = {
+      apiKey: "AIzaSyCy8gWI7Ibh9fGBrUlcEF39QozcisB0ZLo",
+      authDomain: "dailyprogress-4372c.firebaseapp.com",
+      projectId: "dailyprogress-4372c",
+      storageBucket: "dailyprogress-4372c.firebasestorage.app",
+      messagingSenderId: "1055838476577",
+      appId: "1:1055838476577:web:f65804a9f1a0ecf9940660",
+      measurementId: "G-ZXBM42GJK1"
+    };
 
-      const btnSave = document.getElementById("btnSave");
-      const btnToday = document.getElementById("btnToday");
-      const btnDelete = document.getElementById("btnDelete");
-      const btnExport = document.getElementById("btnExport");
-      const btnImport = document.getElementById("btnImport");
-      const importFile = document.getElementById("importFile");
+    const fb = {
+      app: null,
+      db: null,
+      auth: null,
+      uid: null,
+      ready: false
+    };
 
-      const winsPct = document.getElementById("winsPct");
-      const crePct = document.getElementById("crePct");
-      const woPct = document.getElementById("woPct");
-      const playPct = document.getElementById("playPct");
+    try{
+      fb.app = initializeApp(firebaseConfig);
+      getAnalytics(fb.app);
+      fb.db = getFirestore(fb.app);
+      fb.auth = getAuth(fb.app);
 
-      const winsFill = document.getElementById("winsFill");
-      const creFill = document.getElementById("creFill");
-      const woFill = document.getElementById("woFill");
-      const playFill = document.getElementById("playFill");
+      // Anonymous auth keeps it simple (no login UI)
+      signInAnonymously(fb.auth).catch(()=>{ /* ignore, UI will stay local-only */ });
 
-      const targetMode = document.getElementById("targetMode");
-      const weekAnchor = document.getElementById("weekAnchor");
-
-      const monthLabel = document.getElementById("monthLabel");
-      const calMonth = document.getElementById("calMonth");
-      const calYear = document.getElementById("calYear");
-      const btnPrev = document.getElementById("btnPrev");
-      const btnNext = document.getElementById("btnNext");
-      const calGrid = document.getElementById("calGrid");
-
-      const toast = document.getElementById("toast");
-      const toastHint = document.getElementById("toastHint");
-
-      // --------------------------
-      // Date helpers (local)
-      // --------------------------
-      function pad2(n){ return String(n).padStart(2,"0"); }
-      function toISODate(d){
-        return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
-      }
-      function fromISODate(s){
-        // s is YYYY-MM-DD
-        const [y,m,d] = s.split("-").map(Number);
-        return new Date(y, m-1, d);
-      }
-      function addDays(d, n){
-        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        x.setDate(x.getDate() + n);
-        return x;
-      }
-      function startOfDay(d){
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      }
-      function formatHuman(s){
-        const d = fromISODate(s);
-        const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-      }
-
-      // Mon=0 .. Sun=6
-      function mondayIndex(d){
-        // JS: Sun=0..Sat=6
-        const js = d.getDay();
-        return (js + 6) % 7;
-      }
-
-      // --------------------------
-      // DB functions
-      // --------------------------
-      function loadDB(){
-        try{
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if(!raw) return {};
-          const parsed = JSON.parse(raw);
-          if(parsed && typeof parsed === "object") return parsed;
-          return {};
-        }catch{
-          return {};
-        }
-      }
-
-      function saveDB(){
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-      }
-
-      function getEntry(dateStr){
-        return db[dateStr] || {
-          win1:"", win2:"", cre1:"", cre2:"",
-          workoutMins:0, playCount:0,
-          mood:"", shutdown:""
-        };
-      }
-
-      function setEntry(dateStr, entry){
-        db[dateStr] = entry;
-        saveDB();
-      }
-
-      function deleteEntry(dateStr){
-        delete db[dateStr];
-        saveDB();
-      }
-
-      // --------------------------
-      // UI: load/save current date
-      // --------------------------
-      let selectedDate = toISODate(new Date());
-
-      function syncSelectedUI(){
-        dateInput.value = selectedDate;
-        selectedLabel.textContent = selectedDate;
-      }
-
-      function loadForm(dateStr){
-        const e = getEntry(dateStr);
-        win1.value = e.win1 || "";
-        win2.value = e.win2 || "";
-        cre1.value = e.cre1 || "";
-        cre2.value = e.cre2 || "";
-        workoutMins.value = Number(e.workoutMins || 0);
-        playCount.value = String(Number(e.playCount || 0));
-        mood.value = e.mood || "";
-        shutdown.value = e.shutdown || "";
-        toastHint.textContent = formatHuman(dateStr);
-      }
-
-      function readForm(){
-        return {
-          win1: win1.value.trim(),
-          win2: win2.value.trim(),
-          cre1: cre1.value.trim(),
-          cre2: cre2.value.trim(),
-          workoutMins: clampInt(workoutMins.value, 0, 600),
-          playCount: clampInt(playCount.value, 0, 2),
-          mood: mood.value || "",
-          shutdown: shutdown.value.trim()
-        };
-      }
-
-      function clampInt(v, min, max){
-        const n = Math.floor(Number(v));
-        if(Number.isNaN(n)) return min;
-        return Math.max(min, Math.min(max, n));
-      }
-
-      function saveCurrent(){
-        const entry = readForm();
-        // Don't store totally empty days unless user explicitly saved and something is present.
-        const hasAnything =
-          entry.win1 || entry.win2 || entry.cre1 || entry.cre2 ||
-          entry.workoutMins > 0 || entry.playCount > 0 ||
-          entry.mood || entry.shutdown;
-
-        if(hasAnything){
-          setEntry(selectedDate, entry);
-          showToast("Saved.");
+      onAuthStateChanged(fb.auth, (user)=>{
+        if(user){
+          fb.uid = user.uid;
+          fb.ready = true;
+          document.getElementById("uidLabel").textContent = fb.uid.slice(0,8) + "…";
+          document.getElementById("syncNote").textContent =
+            "Local saves + Firestore sync enabled (anonymous user). Export JSON for backups.";
+          // Prefetch current month once auth is ready
+          prefetchMonthFromFirestore();
         }else{
-          // If empty, delete existing to keep db clean
-          if(db[selectedDate]){
-            deleteEntry(selectedDate);
-            showToast("Cleared (empty day).");
-          }else{
-            showToast("Nothing to save.");
-          }
+          fb.uid = null;
+          fb.ready = false;
+          document.getElementById("uidLabel").textContent = "local";
         }
-        refreshAll();
-      }
+      });
+    }catch{
+      // If Firebase fails, app continues locally.
+      fb.ready = false;
+      document.getElementById("uidLabel").textContent = "local";
+    }
 
-      function showToast(msg){
-        toast.firstChild.textContent = msg + " ";
-        toast.classList.add("show");
-        setTimeout(()=>toast.classList.remove("show"), 1600);
-      }
+    // ============================
+    // Local storage model
+    // ============================
+    const STORAGE_KEY = "daily_system_tracker_v2";
+    let localDB = loadLocalDB();
 
-      // --------------------------
-      // Weekly tracker
-      // --------------------------
-      function getTargets(){
-        const mode = targetMode.value;
-        if(mode === "minimum"){
-          return { winsMax: 7, creMax: 7, woMax: 7, playMax: 10 };
+    // ============================
+    // DOM
+    // ============================
+    const dateInput = document.getElementById("dateInput");
+    const selectedLabel = document.getElementById("selectedLabel");
+
+    const workoutMins = document.getElementById("workoutMins");
+    const playCount = document.getElementById("playCount");
+    const mood = document.getElementById("mood");
+    const shutdown = document.getElementById("shutdown");
+
+    const winsList = document.getElementById("winsList");
+    const creList = document.getElementById("creList");
+    const addWin = document.getElementById("addWin");
+    const clearWins = document.getElementById("clearWins");
+    const addCre = document.getElementById("addCre");
+    const clearCre = document.getElementById("clearCre");
+
+    const btnSave = document.getElementById("btnSave");
+    const btnToday = document.getElementById("btnToday");
+    const btnDelete = document.getElementById("btnDelete");
+    const btnExport = document.getElementById("btnExport");
+    const btnImport = document.getElementById("btnImport");
+    const importFile = document.getElementById("importFile");
+
+    const winsPct = document.getElementById("winsPct");
+    const crePct = document.getElementById("crePct");
+    const woPct = document.getElementById("woPct");
+    const playPct = document.getElementById("playPct");
+
+    const winsFill = document.getElementById("winsFill");
+    const creFill = document.getElementById("creFill");
+    const woFill = document.getElementById("woFill");
+    const playFill = document.getElementById("playFill");
+
+    const targetMode = document.getElementById("targetMode");
+    const weekAnchor = document.getElementById("weekAnchor");
+    const streakChips = document.getElementById("streakChips");
+
+    const monthLabel = document.getElementById("monthLabel");
+    const calMonth = document.getElementById("calMonth");
+    const calYear = document.getElementById("calYear");
+    const btnPrev = document.getElementById("btnPrev");
+    const btnNext = document.getElementById("btnNext");
+    const calGrid = document.getElementById("calGrid");
+
+    const toast = document.getElementById("toast");
+    const toastHint = document.getElementById("toastHint");
+
+    // ============================
+    // Date helpers
+    // ============================
+    function pad2(n){ return String(n).padStart(2,"0"); }
+    function toISODate(d){
+      return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
+    }
+    function fromISODate(s){
+      const [y,m,d] = s.split("-").map(Number);
+      return new Date(y, m-1, d);
+    }
+    function addDays(d, n){
+      const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      x.setDate(x.getDate() + n);
+      return x;
+    }
+    function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+    function formatHuman(s){
+      const d = fromISODate(s);
+      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    function mondayIndex(d){
+      const js = d.getDay(); // Sun=0..Sat=6
+      return (js + 6) % 7;   // Mon=0..Sun=6
+    }
+    function clampInt(v, min, max){
+      const n = Math.floor(Number(v));
+      if(Number.isNaN(n)) return min;
+      return Math.max(min, Math.min(max, n));
+    }
+
+    // ============================
+    // Local DB
+    // ============================
+    function loadLocalDB(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return {};
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === "object") ? migrateDB(parsed) : {};
+      }catch{
+        return {};
+      }
+    }
+    function saveLocalDB(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localDB));
+    }
+
+    // v1 -> v2 migration (win1/win2 etc. -> arrays)
+    function migrateDB(db){
+      for(const [k, v] of Object.entries(db)){
+        if(!v || typeof v !== "object") continue;
+        if(!Array.isArray(v.wins) && (v.win1 !== undefined || v.win2 !== undefined)){
+          const wins = [ (v.win1||"").trim(), (v.win2||"").trim() ].filter(Boolean);
+          const creatives = [ (v.cre1||"").trim(), (v.cre2||"").trim() ].filter(Boolean);
+          db[k] = {
+            wins,
+            creatives,
+            workoutMins: Number(v.workoutMins||0),
+            playCount: Number(v.playCount||0),
+            mood: v.mood || "",
+            shutdown: v.shutdown || "",
+            date: k
+          };
+        }else{
+          // ensure required fields
+          db[k] = {
+            date: k,
+            wins: Array.isArray(v.wins) ? v.wins.map(s=>String(s||"")) : [],
+            creatives: Array.isArray(v.creatives) ? v.creatives.map(s=>String(s||"")) : [],
+            workoutMins: Number(v.workoutMins||0),
+            playCount: Number(v.playCount||0),
+            mood: v.mood || "",
+            shutdown: v.shutdown || ""
+          };
         }
-        if(mode === "aggressive"){
-          return { winsMax: 20, creMax: 20, woMax: 7, playMax: 10 };
-        }
-        return { winsMax: 14, creMax: 14, woMax: 7, playMax: 10 };
       }
+      return db;
+    }
 
-      function computeWeekly(){
-        const anchor = weekAnchor.value ? fromISODate(weekAnchor.value) : new Date();
-        const end = startOfDay(anchor); // inclusive end day
-        const start = addDays(end, -6); // 7 days
-        const targets = getTargets();
+    function getEntry(dateStr){
+      return localDB[dateStr] || {
+        date: dateStr,
+        wins: ["",""],        // default 2 slots
+        creatives: ["",""],   // default 2 slots
+        workoutMins: 0,
+        playCount: 0,
+        mood: "",
+        shutdown: ""
+      };
+    }
 
-        let wins = 0, cre = 0, woDays = 0, play = 0;
+    function setEntry(dateStr, entry){
+      localDB[dateStr] = entry;
+      saveLocalDB();
+    }
 
-        for(let i=0;i<7;i++){
-          const day = addDays(start, i);
-          const key = toISODate(day);
-          const e = db[key];
-          if(!e) continue;
+    function deleteEntryLocal(dateStr){
+      delete localDB[dateStr];
+      saveLocalDB();
+    }
 
-          if((e.win1||"").trim()) wins++;
-          if((e.win2||"").trim()) wins++;
-          if((e.cre1||"").trim()) cre++;
-          if((e.cre2||"").trim()) cre++;
+    // ============================
+    // Dynamic list UI
+    // ============================
+    function renderStack(listEl, items, kind){
+      listEl.innerHTML = "";
+      items.forEach((val, idx)=>{
+        var row = document.createElement("divdiv");
+        row = document.createElement("div");
+        row.className = "stackitem";
 
-          const wo = Number(e.workoutMins||0);
-          if(wo > 0) woDays++;
+        var badge = document.createElement("div");
+        badge.className = "idx";
+        badge.textContent = String(idx+1);
 
-          play += Number(e.playCount||0);
-        }
+        var input = document.createElement("input");
+        input.type = "text";
+        input.value = val || "";
+        input.placeholder = (kind === "wins")
+          ? "e.g., Fix bug / ship feature / prepare launch asset"
+          : "e.g., Clip draft / art mock / post draft";
 
-        setBar(wins, targets.winsMax, winsPct, winsFill);
-        setBar(cre, targets.creMax, crePct, creFill);
-        setBar(woDays, targets.woMax, woPct, woFill);
-        setBar(play, targets.playMax, playPct, playFill);
-      }
-
-      function setBar(value, max, labelEl, fillEl){
-        const pct = max <= 0 ? 0 : Math.round((value / max) * 100);
-        const clamped = Math.max(0, Math.min(100, pct));
-        labelEl.textContent = `${value}/${max} • ${clamped}%`;
-        fillEl.style.width = clamped + "%";
-      }
-
-      // --------------------------
-      // Calendar
-      // --------------------------
-      const monthNames = [
-        "January","February","March","April","May","June",
-        "July","August","September","October","November","December"
-      ];
-
-      function initMonthYearControls(){
-        // month
-        calMonth.innerHTML = "";
-        monthNames.forEach((m, idx)=>{
-          const opt = document.createElement("option");
-          opt.value = String(idx);
-          opt.textContent = m;
-          calMonth.appendChild(opt);
+        input.addEventListener("input", ()=>{
+          if(kind === "wins") currentEntry.wins[idx] = input.value;
+          else currentEntry.creatives[idx] = input.value;
         });
 
-        // year range
-        const now = new Date();
-        const y0 = now.getFullYear() - 5;
-        const y1 = now.getFullYear() + 5;
-        calYear.innerHTML = "";
-        for(let y=y0; y<=y1; y++){
-          const opt = document.createElement("option");
-          opt.value = String(y);
-          opt.textContent = String(y);
-          calYear.appendChild(opt);
-        }
-
-        // default to current month/year
-        calMonth.value = String(now.getMonth());
-        calYear.value = String(now.getFullYear());
-      }
-
-      function renderCalendar(){
-        const m = Number(calMonth.value);
-        const y = Number(calYear.value);
-        monthLabel.textContent = `${monthNames[m]} ${y}`;
-
-        calGrid.innerHTML = "";
-
-        const first = new Date(y, m, 1);
-        const last = new Date(y, m+1, 0);
-
-        // We want Monday-first grid. Determine leading blanks.
-        // mondayIndex: Mon=0..Sun=6
-        const lead = mondayIndex(first); // number of blanks from prev month
-
-        // Total cells: 6 weeks (42) for consistent layout
-        const totalCells = 42;
-
-        // Start date for the grid
-        const gridStart = addDays(first, -lead);
-
-        for(let i=0; i<totalCells; i++){
-          const d = addDays(gridStart, i);
-          const iso = toISODate(d);
-          const isInMonth = d.getMonth() === m;
-
-          const cell = document.createElement("div");
-          cell.className = "day" + (isInMonth ? "" : " muted") + (iso === selectedDate ? " selected" : "");
-          cell.dataset.date = iso;
-
-          const top = document.createElement("div");
-          top.className = "n";
-
-          const left = document.createElement("span");
-          left.textContent = pad2(d.getDate());
-
-          const right = document.createElement("span");
-          // badges summary
-          const badges = buildBadges(iso);
-          right.innerHTML = badges.countText;
-
-          top.appendChild(left);
-          top.appendChild(right);
-
-          const badgesRow = document.createElement("div");
-          badgesRow.className = "badges";
-          badgesRow.innerHTML = badges.html;
-
-          const mini = document.createElement("div");
-          mini.className = "mini";
-          mini.textContent = badges.preview || "";
-
-          cell.appendChild(top);
-          cell.appendChild(badgesRow);
-          cell.appendChild(mini);
-
-          if(isInMonth){
-            cell.addEventListener("click", ()=>{
-              selectDate(iso);
-            });
+        var del = document.createElement("button");
+        del.className = "btn small danger";
+        del.type = "button";
+        del.textContent = "Remove";
+        del.addEventListener("click", ()=>{
+          if(kind === "wins"){
+            currentEntry.wins.splice(idx,1);
+            if(currentEntry.wins.length === 0) currentEntry.wins.push("");
+            renderStack(winsList, currentEntry.wins, "wins");
+          }else{
+            currentEntry.creatives.splice(idx,1);
+            if(currentEntry.creatives.length === 0) currentEntry.creatives.push("");
+            renderStack(creList, currentEntry.creatives, "cre");
           }
+        });
 
-          calGrid.appendChild(cell);
-        }
-      }
-
-      function buildBadges(dateStr){
-        const e = db[dateStr];
-        let html = "";
-        let preview = "";
-
-        let winCount = 0, creCount = 0;
-        let wo = 0, play = 0;
-
-        if(e){
-          if((e.win1||"").trim()) winCount++;
-          if((e.win2||"").trim()) winCount++;
-          if((e.cre1||"").trim()) creCount++;
-          if((e.cre2||"").trim()) creCount++;
-          wo = Number(e.workoutMins||0);
-          play = Number(e.playCount||0);
-
-          preview = (e.win1 || e.cre1 || e.shutdown || "").trim();
-        }
-
-        if(winCount > 0) html += `<span class="badge primary">win ${winCount}</span>`;
-        if(creCount > 0) html += `<span class="badge good">cre ${creCount}</span>`;
-        if(wo > 0) html += `<span class="badge warn">wo</span>`;
-        if(play > 0) html += `<span class="badge bad">play ${play}</span>`;
-
-        const countText = (winCount + creCount + (wo>0?1:0) + (play>0?1:0)) > 0 ? "•" : "";
-
-        return { html, preview, countText };
-      }
-
-      function selectDate(iso){
-        // If the user has unsaved edits, save explicitly (no autosave to avoid surprises).
-        selectedDate = iso;
-        syncSelectedUI();
-        loadForm(selectedDate);
-        refreshAll();
-      }
-
-      // --------------------------
-      // Export / import
-      // --------------------------
-      function exportJSON(){
-        const payload = {
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          data: db
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `daily-system-tracker_${toISODate(new Date())}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-        showToast("Exported.");
-      }
-
-      async function importJSONFile(file){
-        const text = await file.text();
-        let parsed;
-        try{
-          parsed = JSON.parse(text);
-        }catch{
-          showToast("Invalid JSON.");
-          return;
-        }
-        const incoming = parsed && parsed.data && typeof parsed.data === "object" ? parsed.data : null;
-        if(!incoming){
-          showToast("No data found.");
-          return;
-        }
-
-        // Merge strategy: incoming overwrites same dates.
-        db = { ...db, ...incoming };
-        saveDB();
-        showToast("Imported.");
-        refreshAll();
-        loadForm(selectedDate);
-      }
-
-      // --------------------------
-      // Refresh
-      // --------------------------
-      function refreshAll(){
-        computeWeekly();
-        renderCalendar();
-      }
-
-      // --------------------------
-      // Wire events
-      // --------------------------
-      btnSave.addEventListener("click", saveCurrent);
-
-      btnToday.addEventListener("click", ()=>{
-        const today = toISODate(new Date());
-        selectDate(today);
-        // also align calendar to today
-        const d = new Date();
-        calMonth.value = String(d.getMonth());
-        calYear.value = String(d.getFullYear());
-        renderCalendar();
+        row.appendChild(badge);
+        row.appendChild(input);
+        row.appendChild(del);
+        listEl.appendChild(row);
       });
+    }
 
-      btnDelete.addEventListener("click", ()=>{
-        if(db[selectedDate]){
-          deleteEntry(selectedDate);
-          showToast("Deleted day.");
-          loadForm(selectedDate);
-          refreshAll();
+    // ============================
+    // Current selection state
+    // ============================
+    let selectedDate = toISODate(new Date());
+    let currentEntry = getEntry(selectedDate);
+
+    function syncSelectedUI(){
+      dateInput.value = selectedDate;
+      selectedLabel.textContent = selectedDate;
+      toastHint.textContent = formatHuman(selectedDate);
+    }
+
+    function loadForm(dateStr){
+      currentEntry = getEntry(dateStr);
+
+      // render dynamic lists
+      if(!Array.isArray(currentEntry.wins) || currentEntry.wins.length === 0) currentEntry.wins = ["",""];
+      if(!Array.isArray(currentEntry.creatives) || currentEntry.creatives.length === 0) currentEntry.creatives = ["",""];
+
+      renderStack(winsList, currentEntry.wins, "wins");
+      renderStack(creList, currentEntry.creatives, "cre");
+
+      workoutMins.value = Number(currentEntry.workoutMins || 0);
+      playCount.value = String(Number(currentEntry.playCount || 0));
+      mood.value = currentEntry.mood || "";
+      shutdown.value = currentEntry.shutdown || "";
+    }
+
+    function readForm(){
+      // Trim but do not forcibly remove empty placeholders
+      const wins = (currentEntry.wins || []).map(s => String(s || "").trim());
+      const creatives = (currentEntry.creatives || []).map(s => String(s || "").trim());
+
+      return {
+        date: selectedDate,
+        wins,
+        creatives,
+        workoutMins: clampInt(workoutMins.value, 0, 600),
+        playCount: clampInt(playCount.value, 0, 12), // not limiting harshly; UI shows 0–2 but you can widen later
+        mood: mood.value || "",
+        shutdown: (shutdown.value || "").trim()
+      };
+    }
+
+    function hasAnything(entry){
+      const winAny = (entry.wins || []).some(s => (s || "").trim().length > 0);
+      const creAny = (entry.creatives || []).some(s => (s || "").trim().length > 0);
+      return winAny || creAny || (entry.workoutMins > 0) || (entry.playCount > 0) || entry.mood || entry.shutdown;
+    }
+
+    // ============================
+    // Firebase paths (Firestore)
+    // ============================
+    function dayDocRef(uid, dateStr){
+      // Collection layout:
+      // users/{uid}/days/{YYYY-MM-DD}
+      return doc(fb.db, "users", uid, "days", dateStr);
+    }
+
+    async function pushDayToFirestore(dateStr, entry){
+      if(!fb.ready) return;
+      const ref = dayDocRef(fb.uid, dateStr);
+      // Add server-friendly fields for querying
+      const payload = {
+        ...entry,
+        date: dateStr,
+        ym: dateStr.slice(0,7),            // "YYYY-MM"
+        updatedAt: Date.now()
+      };
+      await setDoc(ref, payload, { merge: true });
+    }
+
+    async function deleteDayFromFirestore(dateStr){
+      if(!fb.ready) return;
+      const ref = dayDocRef(fb.uid, dateStr);
+      await deleteDoc(ref);
+    }
+
+    async function pullDayFromFirestore(dateStr){
+      if(!fb.ready) return null;
+      const ref = dayDocRef(fb.uid, dateStr);
+      const snap = await getDoc(ref);
+      if(!snap.exists()) return null;
+      return snap.data();
+    }
+
+    async function prefetchMonthFromFirestore(){
+      if(!fb.ready) return;
+      const y = Number(calYear.value);
+      const m = Number(calMonth.value) + 1;
+      const ym = `${y}-${pad2(m)}`; // YYYY-MM
+
+      try{
+        const col = collection(fb.db, "users", fb.uid, "days");
+        const qy = query(col, where("ym", "==", ym));
+        const snap = await getDocs(qy);
+
+        let changed = false;
+        snap.forEach(docSnap=>{
+          const d = docSnap.data();
+          const date = d.date;
+          if(date && typeof date === "string"){
+            // Merge remote into local (remote wins)
+            localDB[date] = migrateDB({[date]: d})[date];
+            changed = true;
+          }
+        });
+
+        if(changed) saveLocalDB();
+        refreshAll();
+      }catch{
+        // ignore fetch issues, stay local
+      }
+    }
+
+    // ============================
+    // Save / delete actions
+    // ============================
+    async function saveCurrent(){
+      // Sync in-memory list edits
+      currentEntry.workoutMins = clampInt(workoutMins.value, 0, 600);
+      currentEntry.playCount = clampInt(playCount.value, 0, 12);
+      currentEntry.mood = mood.value || "";
+      currentEntry.shutdown = (shutdown.value || "").trim();
+
+      const entry = readForm();
+
+      if(!hasAnything(entry)){
+        if(localDB[selectedDate]){
+          deleteEntryLocal(selectedDate);
+          if(fb.ready){
+            try{ await deleteDayFromFirestore(selectedDate); }catch{}
+          }
+          showToast("Cleared (empty day).");
         }else{
-          showToast("Nothing to delete.");
+          showToast("Nothing to save.");
         }
-      });
-
-      btnExport.addEventListener("click", exportJSON);
-
-      btnImport.addEventListener("click", ()=> importFile.click());
-      importFile.addEventListener("change", ()=>{
-        const f = importFile.files && importFile.files[0];
-        if(f) importJSONFile(f);
-        importFile.value = "";
-      });
-
-      targetMode.addEventListener("change", refreshAll);
-
-      weekAnchor.addEventListener("change", computeWeekly);
-
-      calMonth.addEventListener("change", renderCalendar);
-      calYear.addEventListener("change", renderCalendar);
-
-      btnPrev.addEventListener("click", ()=>{
-        let m = Number(calMonth.value);
-        let y = Number(calYear.value);
-        m--;
-        if(m < 0){ m = 11; y--; }
-        calMonth.value = String(m);
-        calYear.value = String(y);
-        renderCalendar();
-      });
-
-      btnNext.addEventListener("click", ()=>{
-        let m = Number(calMonth.value);
-        let y = Number(calYear.value);
-        m++;
-        if(m > 11){ m = 0; y++; }
-        calMonth.value = String(m);
-        calYear.value = String(y);
-        renderCalendar();
-      });
-
-      // Keep selected date in sync if user edits date input directly
-      dateInput.addEventListener("change", ()=>{
-        const v = dateInput.value;
-        if(!v) return;
-        selectDate(v);
-        // align calendar to that month
-        const d = fromISODate(v);
-        calMonth.value = String(d.getMonth());
-        calYear.value = String(d.getFullYear());
-        renderCalendar();
-      });
-
-      // --------------------------
-      // Init
-      // --------------------------
-      function init(){
-        initMonthYearControls();
-
-        const today = toISODate(new Date());
-        selectedDate = today;
-        syncSelectedUI();
-
-        dateInput.value = selectedDate;
-        selectedLabel.textContent = selectedDate;
-
-        weekAnchor.value = today;
-
-        // Load form + calendar defaults
-        loadForm(selectedDate);
-
-        // Set calendar to current month/year 
-        const now = new Date();
-        calMonth.value = String(now.getMonth());
-        calYear.value = String(now.getFullYear());
-
         refreshAll();
+        loadForm(selectedDate);
+        return;
       }
 
-      init();
-    })();
+      // Store locally
+      setEntry(selectedDate, entry);
+
+      // Push to Firestore
+      if(fb.ready){
+        try{
+          await pushDayToFirestore(selectedDate, entry);
+        }catch{
+          // keep local anyway
+        }
+      }
+
+      showToast("Saved.");
+      refreshAll();
+    }
+
+    async function deleteCurrent(){
+      if(localDB[selectedDate]){
+        deleteEntryLocal(selectedDate);
+        if(fb.ready){
+          try{ await deleteDayFromFirestore(selectedDate); }catch{}
+        }
+        showToast("Deleted day.");
+      }else{
+        showToast("Nothing to delete.");
+      }
+      refreshAll();
+      loadForm(selectedDate);
+    }
+
+    // ============================
+    // Toast
+    // ============================
+    function showToast(msg){
+      // toast text node is "Saved. " + span; we’ll rebuild simply
+      toast.childNodes[0].textContent = msg + " ";
+      toastHint.textContent = formatHuman(selectedDate);
+      toast.classList.add("show");
+      setTimeout(()=>toast.classList.remove("show"), 1600);
+    }
+
+    // ============================
+    // Weekly tracker
+    // ============================
+    function getTargets(){
+      const mode = targetMode.value;
+      if(mode === "minimum"){
+        return { winsMax: 7, creMax: 7, woMax: 7, playMax: 10 };
+      }
+      if(mode === "aggressive"){
+        return { winsMax: 20, creMax: 20, woMax: 7, playMax: 10 };
+      }
+      return { winsMax: 14, creMax: 14, woMax: 7, playMax: 10 };
+    }
+
+    function countNonEmpty(arr){
+      return (arr || []).reduce((acc, s)=> acc + ((String(s||"").trim().length>0) ? 1 : 0), 0);
+    }
+
+    function computeWeekly(){
+      const anchor = weekAnchor.value ? fromISODate(weekAnchor.value) : new Date();
+      const end = startOfDay(anchor);
+      const start = addDays(end, -6);
+      const targets = getTargets();
+
+      let wins = 0, cre = 0, woDays = 0, play = 0;
+
+      for(let i=0;i<7;i++){
+        const day = addDays(start, i);
+        const key = toISODate(day);
+        const e = localDB[key];
+        if(!e) continue;
+
+        wins += countNonEmpty(e.wins);
+        cre += countNonEmpty(e.creatives);
+
+        const wo = Number(e.workoutMins||0);
+        if(wo > 0) woDays++;
+
+        play += Number(e.playCount||0);
+      }
+
+      setBar(wins, targets.winsMax, winsPct, winsFill);
+      setBar(cre, targets.creMax, crePct, creFill);
+      setBar(woDays, targets.woMax, woPct, woFill);
+      setBar(play, targets.playMax, playPct, playFill);
+
+      computeStreaks(anchor);
+    }
+
+    function setBar(value, max, labelEl, fillEl){
+      const pct = max <= 0 ? 0 : Math.round((value / max) * 100);
+      const clamped = Math.max(0, Math.min(100, pct));
+      labelEl.textContent = `${value}/${max} • ${clamped}%`;
+      fillEl.style.width = clamped + "%";
+    }
+
+    // ============================
+    // Streaks (ending on anchor)
+    // ============================
+    function dayFlags(entry){
+      const winDay = countNonEmpty(entry?.wins) > 0;
+      const creDay = countNonEmpty(entry?.creatives) > 0;
+      const woDay = Number(entry?.workoutMins||0) > 0;
+      const playDay = Number(entry?.playCount||0) > 0;
+      const fullDay = winDay && creDay && woDay && playDay;
+      return { winDay, creDay, woDay, playDay, fullDay };
+    }
+
+    function streakLength(anchorDate, predicate){
+      let n = 0;
+      for(;;){
+        const d = addDays(anchorDate, -n);
+        const key = toISODate(d);
+        const e = localDB[key];
+        if(!e) break;
+        if(!predicate(dayFlags(e), e)) break;
+        n++;
+      }
+      return n;
+    }
+
+    function computeStreaks(anchorDate){
+      const a = startOfDay(anchorDate);
+
+      const sWin = streakLength(a, (f)=>f.winDay);
+      const sCre = streakLength(a, (f)=>f.creDay);
+      const sWo  = streakLength(a, (f)=>f.woDay);
+      const sPlay= streakLength(a, (f)=>f.playDay);
+      const sFull= streakLength(a, (f)=>f.fullDay);
+
+      streakChips.innerHTML = `
+        <span class="badge primary">Win streak: <span class="badge mono">${sWin}</span> day(s)</span>
+        <span class="badge good">Creative streak: <span class="badge mono">${sCre}</span> day(s)</span>
+        <span class="badge warn">Workout streak: <span class="badge mono">${sWo}</span> day(s)</span>
+        <span class="badge bad">Play streak: <span class="badge mono">${sPlay}</span> day(s)</span>
+        <span class="badge mono">Full streak: <span class="badge mono">${sFull}</span> day(s)</span>
+      `;
+    }
+
+    // ============================
+    // Calendar
+    // ============================
+    const monthNames = [
+      "January","February","March","April","May","June",
+      "July","August","September","October","November","December"
+    ];
+
+    function initMonthYearControls(){
+      calMonth.innerHTML = "";
+      monthNames.forEach((m, idx)=>{
+        const opt = document.createElement("option");
+        opt.value = String(idx);
+        opt.textContent = m;
+        calMonth.appendChild(opt);
+      });
+
+      const now = new Date();
+      const y0 = now.getFullYear() - 5;
+      const y1 = now.getFullYear() + 5;
+      calYear.innerHTML = "";
+      for(let y=y0; y<=y1; y++){
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.textContent = String(y);
+        calYear.appendChild(opt);
+      }
+
+      calMonth.value = String(now.getMonth());
+      calYear.value = String(now.getFullYear());
+    }
+
+    function buildBadges(dateStr){
+      const e = localDB[dateStr];
+      if(!e) return { html:"", preview:"", dot:"" };
+
+      const flags = dayFlags(e);
+      const wc = countNonEmpty(e.wins);
+      const cc = countNonEmpty(e.creatives);
+
+      let html = "";
+      if(flags.winDay) html += `<span class="badge primary">win ${wc}</span>`;
+      if(flags.creDay) html += `<span class="badge good">cre ${cc}</span>`;
+      if(flags.woDay)  html += `<span class="badge warn">wo</span>`;
+      if(flags.playDay)html += `<span class="badge bad">play ${Number(e.playCount||0)}</span>`;
+
+      const preview = (
+        (e.wins || []).find(s=>String(s||"").trim()) ||
+        (e.creatives || []).find(s=>String(s||"").trim()) ||
+        e.shutdown || ""
+      ).trim();
+
+      return { html, preview, dot: html ? "•" : "" };
+    }
+
+    function renderCalendar(){
+      const m = Number(calMonth.value);
+      const y = Number(calYear.value);
+      monthLabel.textContent = `${monthNames[m]} ${y}`;
+
+      calGrid.innerHTML = "";
+
+      const first = new Date(y, m, 1);
+      const lead = mondayIndex(first);
+      const gridStart = addDays(first, -lead);
+
+      for(let i=0;i<42;i++){
+        const d = addDays(gridStart, i);
+        const iso = toISODate(d);
+        const isInMonth = d.getMonth() === m;
+
+        const cell = document.createElement("div");
+        cell.className = "day" + (isInMonth ? "" : " muted") + (iso === selectedDate ? " selected" : "");
+        cell.dataset.date = iso;
+
+        const top = document.createElement("div");
+        top.className = "n";
+
+        const left = document.createElement("span");
+        left.textContent = pad2(d.getDate());
+
+        const right = document.createElement("span");
+        const b = buildBadges(iso);
+        right.textContent = b.dot;
+
+        top.appendChild(left);
+        top.appendChild(right);
+
+        const badgesRow = document.createElement("div");
+        badgesRow.className = "badges";
+        badgesRow.innerHTML = b.html;
+
+        const mini = document.createElement("div");
+        mini.className = "mini";
+        mini.textContent = b.preview || "";
+
+        cell.appendChild(top);
+        cell.appendChild(badgesRow);
+        cell.appendChild(mini);
+
+        if(isInMonth){
+          cell.addEventListener("click", async ()=>{
+            await selectDate(iso);
+          });
+        }
+        calGrid.appendChild(cell);
+      }
+    }
+
+    async function selectDate(iso){
+      selectedDate = iso;
+      syncSelectedUI();
+
+      // If Firebase is ready, try pull latest for that day (fast + safe)
+      if(fb.ready){
+        try{
+          const remote = await pullDayFromFirestore(iso);
+          if(remote){
+            // Merge remote -> local
+            localDB[iso] = migrateDB({[iso]: remote})[iso];
+            saveLocalDB();
+          }
+        }catch{}
+      }
+
+      loadForm(selectedDate);
+      refreshAll();
+    }
+
+    // ============================
+    // Export / Import
+    // ============================
+    function exportJSON(){
+      const payload = {
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        data: localDB
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `daily-system-tracker_${toISODate(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      showToast("Exported.");
+    }
+
+    async function importJSONFile(file){
+      const text = await file.text();
+      let parsed;
+      try{ parsed = JSON.parse(text); }
+      catch{ showToast("Invalid JSON."); return; }
+
+      const incoming = parsed && parsed.data && typeof parsed.data === "object" ? parsed.data : null;
+      if(!incoming){ showToast("No data found."); return; }
+
+      const merged = migrateDB(incoming);
+      localDB = { ...localDB, ...merged };
+      saveLocalDB();
+
+      // Push imported data to Firestore (best-effort)
+      if(fb.ready){
+        const keys = Object.keys(merged);
+        for(const k of keys){
+          try{ await pushDayToFirestore(k, merged[k]); }catch{}
+        }
+      }
+
+      showToast("Imported.");
+      refreshAll();
+      loadForm(selectedDate);
+    }
+
+    // ============================
+    // Wiring
+    // ============================
+    addWin.addEventListener("click", ()=>{
+      currentEntry.wins.push("");
+      renderStack(winsList, currentEntry.wins, "wins");
+    });
+    clearWins.addEventListener("click", ()=>{
+      currentEntry.wins = ["",""]; // back to default 2 slots
+      renderStack(winsList, currentEntry.wins, "wins");
+    });
+
+    addCre.addEventListener("click", ()=>{
+      currentEntry.creatives.push("");
+      renderStack(creList, currentEntry.creatives, "cre");
+    });
+    clearCre.addEventListener("click", ()=>{
+      currentEntry.creatives = ["",""];
+      renderStack(creList, currentEntry.creatives, "cre");
+    });
+
+    btnSave.addEventListener("click", saveCurrent);
+    btnDelete.addEventListener("click", deleteCurrent);
+
+    btnToday.addEventListener("click", async ()=>{
+      const today = toISODate(new Date());
+      // align calendar first
+      const d = new Date();
+      calMonth.value = String(d.getMonth());
+      calYear.value = String(d.getFullYear());
+      await selectDate(today);
+    });
+
+    btnExport.addEventListener("click", exportJSON);
+    btnImport.addEventListener("click", ()=> importFile.click());
+    importFile.addEventListener("change", ()=>{
+      const f = importFile.files && importFile.files[0];
+      if(f) importJSONFile(f);
+      importFile.value = "";
+    });
+
+    targetMode.addEventListener("change", computeWeekly);
+
+    weekAnchor.addEventListener("change", ()=>{
+      computeWeekly();
+    });
+
+    calMonth.addEventListener("change", ()=>{
+      renderCalendar();
+      if(fb.ready) prefetchMonthFromFirestore();
+    });
+    calYear.addEventListener("change", ()=>{
+      renderCalendar();
+      if(fb.ready) prefetchMonthFromFirestore();
+    });
+
+    btnPrev.addEventListener("click", ()=>{
+      let m = Number(calMonth.value);
+      let y = Number(calYear.value);
+      m--;
+      if(m < 0){ m = 11; y--; }
+      calMonth.value = String(m);
+      calYear.value = String(y);
+      renderCalendar();
+      if(fb.ready) prefetchMonthFromFirestore();
+    });
+
+    btnNext.addEventListener("click", ()=>{
+      let m = Number(calMonth.value);
+      let y = Number(calYear.value);
+      m++;
+      if(m > 11){ m = 0; y++; }
+      calMonth.value = String(m);
+      calYear.value = String(y);
+      renderCalendar();
+      if(fb.ready) prefetchMonthFromFirestore();
+    });
+
+    dateInput.addEventListener("change", async ()=>{
+      const v = dateInput.value;
+      if(!v) return;
+      const d = fromISODate(v);
+      calMonth.value = String(d.getMonth());
+      calYear.value = String(d.getFullYear());
+      await selectDate(v);
+      renderCalendar();
+      if(fb.ready) prefetchMonthFromFirestore();
+    });
+
+    // Keep these fields in sync with currentEntry
+    workoutMins.addEventListener("input", ()=> currentEntry.workoutMins = clampInt(workoutMins.value, 0, 600));
+    playCount.addEventListener("change", ()=> currentEntry.playCount = clampInt(playCount.value, 0, 12));
+    mood.addEventListener("change", ()=> currentEntry.mood = mood.value || "");
+    shutdown.addEventListener("input", ()=> currentEntry.shutdown = (shutdown.value || ""));
+
+    // ============================
+    // Refresh
+    // ============================
+    function refreshAll(){
+      computeWeekly();
+      renderCalendar();
+    }
+
+    // ============================
+    // Init
+    // ============================
+    function init(){
+      initMonthYearControls();
+
+      const today = toISODate(new Date());
+      selectedDate = today;
+
+      weekAnchor.value = today;
+
+      syncSelectedUI();
+      loadForm(selectedDate);
+
+      // Set calendar to current month/year
+      const now = new Date();
+      calMonth.value = String(now.getMonth());
+      calYear.value = String(now.getFullYear());
+
+      refreshAll();
+
+      // Try initial month prefetch once Firebase is ready; if not ready yet, onAuthStateChanged calls it.
+      if(fb.ready) prefetchMonthFromFirestore();
+    }
+
+    init();
   </script>
 </body>
 </html>
