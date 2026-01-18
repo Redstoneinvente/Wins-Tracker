@@ -311,6 +311,8 @@
       </div>
 
       <div class="controls">
+        <button class="btn" id="btnAuth" type="button">Sign in</button>
+
         <span class="chip">User: <strong class="mono" id="uidLabel">local</strong></span>
         <span class="chip">Selected: <strong class="mono" id="selectedLabel"></strong></span>
         <button class="btn" id="btnToday" type="button">Today</button>
@@ -545,6 +547,45 @@ Friction / blockers:
     </section>
   </main>
 
+  <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(6px); z-index:999;">
+  <div style="max-width:520px; margin:8vh auto; padding:16px;">
+    <div class="card">
+      <div class="head">
+        <div>
+          <h2 class="title">Sign in</h2>
+          <p class="sub">Use email/password. If you started anonymous, you can link and keep your data.</p>
+        </div>
+        <button class="btn" id="btnAuthClose" type="button">Close</button>
+      </div>
+
+      <div class="body">
+        <div class="row">
+          <div>
+            <label for="authEmail">Email</label>
+            <input id="authEmail" type="text" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div>
+            <label for="authPass">Password</label>
+            <input id="authPass" type="text" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+        </div>
+
+        <div class="note">If you’re currently anonymous, press <strong>Link</strong> to attach email/password to this same account.</div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
+          <button class="btn primary" id="btnSignIn" type="button">Sign in</button>
+          <button class="btn" id="btnSignUp" type="button">Sign up</button>
+          <button class="btn" id="btnLink" type="button">Link</button>
+          <button class="btn danger" id="btnSignOut" type="button">Sign out</button>
+        </div>
+
+        <div class="note" id="authStatus"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
   <div class="toast" id="toast">Saved. <span id="toastHint"></span></div>
 
   <!-- Firebase + App (module) -->
@@ -562,8 +603,11 @@ Friction / blockers:
     } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
     import {
-      getAuth, signInAnonymously, onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+  getAuth, signInAnonymously, onAuthStateChanged,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  linkWithCredential, EmailAuthProvider, signOut
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyCy8gWI7Ibh9fGBrUlcEF39QozcisB0ZLo",
@@ -671,6 +715,111 @@ Friction / blockers:
     // ============================
     // Date helpers
     // ============================
+// ============================
+// Email/Password Auth UI
+// ============================
+const btnAuth = document.getElementById("btnAuth");
+const authModal = document.getElementById("authModal");
+const btnAuthClose = document.getElementById("btnAuthClose");
+
+const authEmail = document.getElementById("authEmail");
+const authPass  = document.getElementById("authPass");
+const authStatus= document.getElementById("authStatus");
+
+const btnSignIn = document.getElementById("btnSignIn");
+const btnSignUp = document.getElementById("btnSignUp");
+const btnLink   = document.getElementById("btnLink");
+const btnSignOut= document.getElementById("btnSignOut");
+
+function openAuth(){
+  authModal.style.display = "block";
+}
+function closeAuth(){
+  authModal.style.display = "none";
+}
+btnAuth?.addEventListener("click", openAuth);
+btnAuthClose?.addEventListener("click", closeAuth);
+authModal?.addEventListener("click", (e)=>{ if(e.target === authModal) closeAuth(); });
+
+function setAuthStatus(msg){
+  authStatus.textContent = msg || "";
+}
+
+function requireEmailPass(){
+  const email = (authEmail.value || "").trim();
+  const pass  = (authPass.value || "");
+  if(!email || !pass){
+    setAuthStatus("Enter email and password.");
+    return null;
+  }
+  return { email, pass };
+}
+
+// Sign in
+btnSignIn?.addEventListener("click", async ()=>{
+  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
+  const v = requireEmailPass();
+  if(!v) return;
+
+  try{
+    await signInWithEmailAndPassword(fb.auth, v.email, v.pass);
+    setAuthStatus("Signed in.");
+    closeAuth();
+  }catch(err){
+    setAuthStatus("Sign in failed: " + (err?.code || err?.message || "unknown"));
+  }
+});
+
+// Sign up (creates account)
+btnSignUp?.addEventListener("click", async ()=>{
+  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
+  const v = requireEmailPass();
+  if(!v) return;
+
+  try{
+    await createUserWithEmailAndPassword(fb.auth, v.email, v.pass);
+    setAuthStatus("Account created and signed in.");
+    closeAuth();
+  }catch(err){
+    setAuthStatus("Sign up failed: " + (err?.code || err?.message || "unknown"));
+  }
+});
+
+// Link (important): converts anonymous -> email/pass WITHOUT losing data
+btnLink?.addEventListener("click", async ()=>{
+  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
+  const v = requireEmailPass();
+  if(!v) return;
+
+  try{
+    const user = fb.auth.currentUser;
+    if(!user) return setAuthStatus("No active user session.");
+
+    const cred = EmailAuthProvider.credential(v.email, v.pass);
+    await linkWithCredential(user, cred);
+
+    setAuthStatus("Linked. This account now has email/password. Data kept.");
+    closeAuth();
+  }catch(err){
+    setAuthStatus("Link failed: " + (err?.code || err?.message || "unknown"));
+  }
+});
+
+// Sign out
+btnSignOut?.addEventListener("click", async ()=>{
+  if(!fb.auth) return setAuthStatus("Auth not available (Firebase failed to load).");
+  try{
+    await signOut(fb.auth);
+    setAuthStatus("Signed out.");
+    // optional: re-enter anonymous immediately so app still syncs
+    try{ await signInAnonymously(fb.auth); }catch{}
+    closeAuth();
+  }catch(err){
+    setAuthStatus("Sign out failed: " + (err?.code || err?.message || "unknown"));
+  }
+});
+
+
     function pad2(n){ return String(n).padStart(2,"0"); }
     function toISODate(d){
       return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
